@@ -3,144 +3,519 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movie Recommendations</title>
+    <title>AI Movie Recommendations</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* General reset */
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --accent-color: #f59e0b;
+            --background-dark: #0f172a;
+            --background-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border-color: #334155;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --openai-color: #00a67e;
+            --claude-color: #c5592a;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        /* Body styling */
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e); /* Cinematic dark gradient */
-            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--background-dark) 0%, #1a202c 100%);
+            color: var(--text-primary);
             min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-section {
+            background: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--background-dark);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .provider-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .provider-option {
+            position: relative;
+        }
+
+        .provider-radio {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .provider-card {
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-        }
-
-        /* Heading styling */
-        h1 {
-            font-size: 3em;
-            color: #ffcc00;
-            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.8);
-            margin-bottom: 20px;
-        }
-
-        /* Form styling */
-        form {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        label {
-            font-size: 1.2em;
-            color: #ffcc00;
-            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
-        }
-
-        input[type="text"] {
-            font-size: 1.1em;
-            padding: 10px;
-            width: 100%;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: none;
-            outline: none;
-            background: #333;
-            color: #fff;
-            box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.5);
-        }
-
-        button {
-            font-size: 1.2em;
-            padding: 10px 20px;
-            border-radius: 5px;
-            border: none;
-            background: #ffcc00;
-            color: #333;
+            gap: 0.5rem;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--background-dark);
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: all 0.3s ease;
+            font-weight: 600;
         }
 
-        button:hover {
-            background: #e6b800;
+        .provider-radio:checked + .provider-card {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.1);
         }
 
-        /* Recommendations styling */
-        #recommendations {
-            margin-top: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            width: 80%;
-            color: #fff;
-            font-family: monospace;
-            white-space: pre-wrap;
-            text-align: left;
+        .provider-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
         }
 
-        /* Additional cinema-like feel */
-        body::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
+        .provider-icon {
+            font-size: 1.2rem;
+        }
+
+        .openai-icon { color: var(--openai-color); }
+        .claude-icon { color: var(--claude-color); }
+        .both-icon { color: var(--accent-color); }
+
+        .submit-btn {
             width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: -1;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
-        /* Add some subtle star-like particles */
-        body::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
-            opacity: 0.2;
-            z-index: -1;
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            margin-top: 2rem;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .recommendation-container {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .recommendation-card {
+            background: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .recommendation-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .provider-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .provider-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .openai-badge {
+            background: rgba(0, 166, 126, 0.1);
+            color: var(--openai-color);
+            border: 1px solid rgba(0, 166, 126, 0.3);
+        }
+
+        .claude-badge {
+            background: rgba(197, 89, 42, 0.1);
+            color: var(--claude-color);
+            border: 1px solid rgba(197, 89, 42, 0.3);
+        }
+
+        .recommendation-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+        }
+
+        .recommendation-content strong {
+            color: var(--accent-color);
+        }
+
+        .usage-info {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .requested-movie {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        .requested-movie strong {
+            color: var(--accent-color);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .title {
+                font-size: 2.5rem;
+            }
+
+            .provider-selection {
+                grid-template-columns: 1fr;
+            }
+
+            .usage-info {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Get Movie or Series Recommendations</h1>
-    <form id="recommendation-form">
-        <label for="title">Title:</label>
-        <input type="text" id="title" name="title" required>
-        <br>
-        <button type="submit">Get Recommendations</button>
-    </form>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">
+                <i class="fas fa-film"></i>
+                AI Movie Recommendations
+            </h1>
+            <p class="subtitle">
+                Get personalized movie recommendations powered by OpenAI GPT-4o and Anthropic Claude 3.5 Sonnet, enhanced with real-time web search
+            </p>
+        </header>
 
-    <div id="recommendations"></div>
+        <section class="search-section">
+            <form id="recommendation-form">
+                <div class="form-group">
+                    <label for="title" class="form-label">
+                        <i class="fas fa-search"></i>
+                        What movie did you enjoy?
+                    </label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        class="form-input"
+                        placeholder="e.g., The Matrix, Inception, Pulp Fiction..."
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-robot"></i>
+                        Choose AI Provider
+                    </label>
+                    <div class="provider-selection">
+                        <div class="provider-option">
+                            <input type="radio" id="openai" name="provider" value="openai" class="provider-radio" checked>
+                            <label for="openai" class="provider-card">
+                                <i class="fas fa-brain provider-icon openai-icon"></i>
+                                OpenAI GPT-4o
+                            </label>
+                        </div>
+                        <div class="provider-option">
+                            <input type="radio" id="claude" name="provider" value="claude" class="provider-radio">
+                            <label for="claude" class="provider-card">
+                                <i class="fas fa-microchip provider-icon claude-icon"></i>
+                                Claude 3.5 Sonnet
+                            </label>
+                        </div>
+                        <div class="provider-option">
+                            <input type="radio" id="both" name="provider" value="both" class="provider-radio">
+                            <label for="both" class="provider-card">
+                                <i class="fas fa-magic provider-icon both-icon"></i>
+                                Both AIs
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    <i class="fas fa-sparkles"></i>
+                    Get Recommendations
+                </button>
+            </form>
+        </section>
+
+        <section class="results-section" id="results-section" style="display: none;">
+            <div id="error-message" class="error-message" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="error-text"></span>
+            </div>
+
+            <div id="requested-movie" class="requested-movie" style="display: none;"></div>
+
+            <div id="recommendations" class="recommendation-container"></div>
+        </section>
+    </div>
 
     <script>
-        document.getElementById('recommendation-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const title = document.getElementById('title').value;
-            
-            const response = await fetch('/get-recommendations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({title })
+        const form = document.getElementById('recommendation-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const resultsSection = document.getElementById('results-section');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const requestedMovie = document.getElementById('requested-movie');
+        const recommendations = document.getElementById('recommendations');
+
+        function setLoading(loading) {
+            if (loading) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<div class="loading-spinner"></div>Getting recommendations...';
+                errorMessage.style.display = 'none';
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-sparkles"></i>Get Recommendations';
+            }
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.style.display = 'flex';
+            resultsSection.style.display = 'block';
+            recommendations.innerHTML = '';
+            requestedMovie.style.display = 'none';
+        }
+
+        function formatRecommendationContent(content) {
+            // Convert markdown-style formatting to HTML
+            return content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function displayRecommendations(data) {
+            errorMessage.style.display = 'none';
+            resultsSection.style.display = 'block';
+
+            requestedMovie.innerHTML = `Recommendations for: <strong>"${data.requestedMovie}"</strong>`;
+            requestedMovie.style.display = 'block';
+
+            recommendations.innerHTML = '';
+
+            data.recommendations.forEach((rec, index) => {
+                const card = document.createElement('div');
+                card.className = 'recommendation-card fade-in';
+                card.style.animationDelay = `${index * 0.2}s`;
+
+                const providerClass = rec.provider.includes('OpenAI') ? 'openai' : 'claude';
+                const providerIcon = rec.provider.includes('OpenAI') ? 'fa-brain' : 'fa-microchip';
+
+                card.innerHTML = `
+                    <div class="provider-header">
+                        <div class="provider-badge ${providerClass}-badge">
+                            <i class="fas ${providerIcon}"></i>
+                            ${rec.provider}
+                        </div>
+                    </div>
+                    <div class="recommendation-content">
+                        <p>${formatRecommendationContent(rec.content)}</p>
+                    </div>
+                    ${rec.usage ? `
+                    <div class="usage-info">
+                        ${rec.searchEnhanced ? `<span><i class="fas fa-search" style="color: var(--success-color);"></i> Web Search Enhanced</span>` : ''}
+                        <span><i class="fas fa-calculator"></i> Tokens: ${rec.usage.total_tokens || rec.usage.input_tokens + rec.usage.output_tokens}</span>
+                        ${rec.usage.completion_tokens ? `<span><i class="fas fa-pen"></i> Completion: ${rec.usage.completion_tokens}</span>` : ''}
+                        ${rec.usage.output_tokens ? `<span><i class="fas fa-pen"></i> Output: ${rec.usage.output_tokens}</span>` : ''}
+                    </div>
+                    ` : ''}
+                `;
+
+                recommendations.appendChild(card);
             });
-            
-            const data = await response.json();
-            document.getElementById('recommendations').innerText = JSON.stringify(data, null, 2);
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(form);
+            const title = formData.get('title').trim();
+            const provider = formData.get('provider');
+
+            if (!title) {
+                showError('Please enter a movie title');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const response = await fetch('/get-recommendations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, provider })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'An error occurred');
+                }
+
+                if (data.success) {
+                    displayRecommendations(data);
+                } else {
+                    showError('No recommendations received');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'Failed to get recommendations. Please try again.');
+            } finally {
+                setLoading(false);
+            }
         });
+
+        // Auto-focus on the input field
+        document.getElementById('title').focus();
     </script>
 </body>
 </html>
