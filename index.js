@@ -20,12 +20,16 @@
  * @returns {void}
  */
 const express = require('express');
-const fetch = require('node-fetch');
+const { OpenAI } = require('openai');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const openaiKey = process.env.OPENAIKEY || 'default_openaikey';
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+    apiKey: process.env.OPENAIKEY || 'default_openaikey'
+});
 
 
 app.use(express.json());
@@ -40,35 +44,26 @@ app.use(express.static('public')); // Serve HTML from the public folder
  * @param {Object} res - The response object.
  * @returns {Object} - The response object with movie recommendations or an error message.
  */
-app.post('/get-recommendations', async (req, res) => {  
+app.post('/get-recommendations', async (req, res) => {
     const { title } = req.body;
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openaiKey}`,
-            },
-            body: JSON.stringify({
-                model: "gpt-4o", // You can use "gpt-4" if you have access to it
-                messages: [
-                    { role: "system", content: "You are a movie recommendation assistant." },
-                    { role: "user", content: `Give me 1 movie recommendations similar to ${title} and 1 move recommendation that has the same feeling but different genre as ${title}.` }
-                ],
-                max_tokens: 200,
-                temperature: 0.7
-            })
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o", // You can use "gpt-4" if you have access to it
+            messages: [
+                { role: "system", content: "You are a movie recommendation assistant." },
+                { role: "user", content: `Give me 1 movie recommendations similar to ${title} and 1 move recommendation that has the same feeling but different genre as ${title}.` }
+            ],
+            max_tokens: 200,
+            temperature: 0.7
         });
 
-        const data = await response.json();
-
         // Log the entire response object to see its structure
-        console.log('OpenAI Response:', data);
+        console.log('OpenAI Response:', completion);
 
         // Safely access message content from choices
-        if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-            const messageContent = data.choices[0].message.content;
+        if (completion.choices && completion.choices.length > 0 && completion.choices[0].message) {
+            const messageContent = completion.choices[0].message.content;
             console.log('Message Content:', messageContent);
 
             res.json({ recommendations: messageContent.trim().split('\n') });
@@ -78,7 +73,17 @@ app.post('/get-recommendations', async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching recommendations:', error);
-        res.status(500).json({ error: 'Error fetching recommendations' });
+
+        // Handle different types of OpenAI API errors
+        if (error.status === 401) {
+            res.status(401).json({ error: 'Invalid OpenAI API key' });
+        } else if (error.status === 429) {
+            res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+        } else if (error.status >= 500) {
+            res.status(502).json({ error: 'OpenAI service unavailable. Please try again later.' });
+        } else {
+            res.status(500).json({ error: 'Error fetching recommendations' });
+        }
     }
 });
 
